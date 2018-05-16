@@ -9,6 +9,10 @@ public class Junit3Test {
         System.out.println("Running Test2");
     }
 
+    public void test3(String str) throws Exception {
+        System.out.println("Running Test3 - " + str);
+    }
+
     public void three() throws Exception {
         System.out.println("Running Test3");
     }
