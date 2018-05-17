@@ -14,8 +14,7 @@ public class LegacyHandlerMapping implements HandlerMapping {
     private static final Logger logger = LoggerFactory.getLogger(DispatcherServlet.class);
     private Map<String, Controller> mappings = new HashMap<>();
 
-    @Override
-    public void initialize() {
+    public void initMapping() {
         mappings.put("/qna/show", new ShowQuestionController());
         mappings.put("/qna/form", new CreateFormQuestionController());
         mappings.put("/qna/create", new CreateQuestionController());

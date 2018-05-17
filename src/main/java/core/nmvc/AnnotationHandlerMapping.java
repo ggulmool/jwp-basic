@@ -1,6 +1,7 @@
 package core.nmvc;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import core.annotation.RequestMapping;
 import core.annotation.RequestMethod;
 import org.reflections.ReflectionUtils;
@@ -24,20 +25,25 @@ public class AnnotationHandlerMapping implements HandlerMapping {
         this.basePackage = basePackage;
     }
 
-    @Override
     public void initialize() {
         ControllerScanner controllerScanner = new ControllerScanner(basePackage);
         Map<Class<?>, Object> controllers = controllerScanner.getControllers();
-        for (Class<?> clazz : controllers.keySet()) {
-            Set<Method> handlers = ReflectionUtils.getAllMethods(clazz, ReflectionUtils.withAnnotation(RequestMapping.class));
-            for (Method handler : handlers) {
-                RequestMapping rm = handler.getAnnotation(RequestMapping.class);
-                logger.debug("{} {}", rm.value(), rm.method());
-                HandlerKey handlerKey = new HandlerKey(rm.value(), rm.method());
-                HandlerExecution handlerExecution = new HandlerExecution(controllers.get(clazz), handler);
-                handlerExecutions.put(handlerKey, handlerExecution);
-            }
+        Set<Method> handlers = getRequestMappingMethod(controllers);
+        for (Method handler : handlers) {
+            RequestMapping rm = handler.getAnnotation(RequestMapping.class);
+            logger.debug("{} {}", rm.value(), rm.method());
+            HandlerKey handlerKey = new HandlerKey(rm.value(), rm.method());
+            HandlerExecution handlerExecution = new HandlerExecution(controllers.get(handler.getDeclaringClass()), handler);
+            handlerExecutions.put(handlerKey, handlerExecution);
         }
+    }
+
+    private Set<Method> getRequestMappingMethod(Map<Class<?>, Object> controllers) {
+        Set<Method> requestMappingMethods = Sets.newHashSet();
+        for (Class<?> clazz : controllers.keySet()) {
+            requestMappingMethods.addAll(ReflectionUtils.getAllMethods(clazz, ReflectionUtils.withAnnotation(RequestMapping.class)));
+        }
+        return requestMappingMethods;
     }
 
     @Override
