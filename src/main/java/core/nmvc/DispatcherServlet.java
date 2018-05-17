@@ -1,4 +1,4 @@
-package core.mvc;
+package core.nmvc;
 
 import java.io.IOException;
 
@@ -8,6 +8,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import core.mvc.Controller;
+import core.mvc.LegacyHandlerMapping;
+import core.mvc.ModelAndView;
+import core.mvc.View;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,12 +20,15 @@ public class DispatcherServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(DispatcherServlet.class);
 
-    private RequestMapping rm;
+    private LegacyHandlerMapping lhm;
+    private AnnotationHandlerMapping ahm;
 
     @Override
     public void init() throws ServletException {
-        rm = new RequestMapping();
-        rm.initMapping();
+        lhm = new LegacyHandlerMapping();
+        lhm.initMapping();
+        ahm = new AnnotationHandlerMapping("next.controller");
+        ahm.initialize();
     }
 
     @Override
@@ -29,10 +36,25 @@ public class DispatcherServlet extends HttpServlet {
         String requestUri = req.getRequestURI();
         logger.debug("Method : {}, Request URI : {}", req.getMethod(), requestUri);
 
-        Controller controller = rm.findController(req.getRequestURI());
-        ModelAndView mav;
+        Controller controller = lhm.findController(req.getRequestURI());
+        if (controller != null) {
+            try {
+                render(req, resp, controller.execute(req, resp));
+            } catch (Exception e) {
+            }
+        } else {
+            HandlerExecution he = ahm.getHandler(req);
+            try {
+                render(req, resp, he.handle(req, resp));
+            } catch (Exception e) {
+            }
+        }
+
+        /**/
+    }
+
+    private void render(HttpServletRequest req, HttpServletResponse resp, ModelAndView mav) throws ServletException {
         try {
-            mav = controller.execute(req, resp);
             View view = mav.getView();
             view.render(mav.getModel(), req, resp);
         } catch (Throwable e) {
