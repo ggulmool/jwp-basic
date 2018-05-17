@@ -1,6 +1,7 @@
 package core.nmvc;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -8,6 +9,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.common.collect.Lists;
 import core.mvc.Controller;
 import core.mvc.LegacyHandlerMapping;
 import core.mvc.ModelAndView;
@@ -20,15 +22,13 @@ public class DispatcherServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(DispatcherServlet.class);
 
-    private LegacyHandlerMapping lhm;
-    private AnnotationHandlerMapping ahm;
+    private List<HandlerMapping> handlerMappings = Lists.newArrayList();
 
     @Override
     public void init() throws ServletException {
-        lhm = new LegacyHandlerMapping();
-        lhm.initMapping();
-        ahm = new AnnotationHandlerMapping("next.controller");
-        ahm.initialize();
+        handlerMappings.add(new LegacyHandlerMapping());
+        handlerMappings.add(new AnnotationHandlerMapping("next.controller"));
+        handlerMappings.stream().forEach(hm -> hm.initialize());
     }
 
     @Override
@@ -36,21 +36,20 @@ public class DispatcherServlet extends HttpServlet {
         String requestUri = req.getRequestURI();
         logger.debug("Method : {}, Request URI : {}", req.getMethod(), requestUri);
 
-        Controller controller = lhm.findController(req.getRequestURI());
-        if (controller != null) {
-            try {
-                render(req, resp, controller.execute(req, resp));
-            } catch (Exception e) {
-            }
-        } else {
-            HandlerExecution he = ahm.getHandler(req);
-            try {
-                render(req, resp, he.handle(req, resp));
-            } catch (Exception e) {
+        for (HandlerMapping hm : handlerMappings) {
+            Object handler = hm.getHandler(req);
+            if (handler instanceof Controller) {
+                try {
+                    render(req, resp, ((Controller) handler).execute(req, resp));
+                } catch (Exception e) {
+                }
+            } else if (handler instanceof HandlerExecution){
+                try {
+                    render(req, resp, ((HandlerExecution)handler).handle(req, resp));
+                } catch (Exception e) {
+                }
             }
         }
-
-        /**/
     }
 
     private void render(HttpServletRequest req, HttpServletResponse resp, ModelAndView mav) throws ServletException {

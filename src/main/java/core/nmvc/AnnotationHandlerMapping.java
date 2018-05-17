@@ -12,7 +12,7 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
 
-public class AnnotationHandlerMapping {
+public class AnnotationHandlerMapping implements HandlerMapping {
 
     private static final Logger logger = LoggerFactory.getLogger(AnnotationHandlerMapping.class);
 
@@ -24,6 +24,7 @@ public class AnnotationHandlerMapping {
         this.basePackage = basePackage;
     }
 
+    @Override
     public void initialize() {
         ControllerScanner controllerScanner = new ControllerScanner(basePackage);
         Map<Class<?>, Object> controllers = controllerScanner.getControllers();
@@ -39,6 +40,7 @@ public class AnnotationHandlerMapping {
         }
     }
 
+    @Override
     public HandlerExecution getHandler(HttpServletRequest request) {
         String requestUri = request.getRequestURI();
         RequestMethod rm = RequestMethod.valueOf(request.getMethod().toUpperCase());
